@@ -103,6 +103,9 @@ abstract class ExerciseEditor {
   completionMethods: Promise<ExerciseCompletionMethods>;
   runWaiters: ((ok: boolean) => void)[] = [];
   runningAbove: boolean = false;
+  // A locked editor is read-only and cannot be run or reset (see setLocked)
+  locked: boolean = false;
+  lockCompartment = new Compartment();
 
   abstract languageExtensions(): Extension[];
 
@@ -132,6 +135,7 @@ abstract class ExerciseEditor {
       basicSetup,
       this.languageExtensions(),
       EditorView.updateListener.of((update) => this.onViewUpdate(update)),
+      this.lockCompartment.of(this.lockExtensions(false)),
     ];
 
     // Load previous edits to editor from browser storage
@@ -160,6 +164,11 @@ abstract class ExerciseEditor {
     dom.style.setProperty('--exercise-max-lines', maxLines);
 
     this.container.oninput = (ev: CustomEvent) => this.onInput(ev);
+    // Other scripts (e.g. ipok, for a solved question) lock the editor with
+    // CustomEvent("live-lock", {detail: {locked: true}}) on the container.
+    this.container.addEventListener('live-lock', (ev: Event) => {
+      this.setLocked(!!(ev as CustomEvent).detail?.locked);
+    });
     this.container.appendChild(dom);
     this.container.value = {
       code: this.options.autorun ? code : null,
@@ -186,7 +195,7 @@ abstract class ExerciseEditor {
         )).forEach((el) => el.classList.add('disabled'));
       },
       idleCallback: () => {
-        Array.from(this.container.querySelectorAll(
+        if (!this.locked) Array.from(this.container.querySelectorAll(
           '.exercise-editor-btn-run-code, .exercise-editor-btn-run-above'
         )).forEach((el) => el.classList.remove('disabled'));
         // Only offer "Run All Above" when there is a cell above to run
@@ -198,7 +207,33 @@ abstract class ExerciseEditor {
     });
   }
 
+  lockExtensions(locked: boolean): Extension[] {
+    return [EditorState.readOnly.of(locked), EditorView.editable.of(!locked)];
+  }
+
+  // Lock or unlock the editor: read-only, and Run Code, Run All Above, Start
+  // Over and Mod-Enter do nothing. Code can still be set programmatically.
+  setLocked(locked: boolean) {
+    if (locked === this.locked) return;
+    this.locked = locked;
+    this.view.dispatch({ effects: this.lockCompartment.reconfigure(this.lockExtensions(locked)) });
+    Array.from(this.container.querySelectorAll(
+      '.exercise-editor-btn-run-code, .exercise-editor-btn-run-above, .exercise-editor-btn-start-over'
+    )).forEach((el) => {
+      el.classList.toggle('disabled', locked);
+      el.setAttribute('aria-disabled', String(locked));
+    });
+    this.container.querySelector('.exercise-editor')?.classList.toggle('exercise-editor-locked', locked);
+  }
+
   onInput(ev: CustomEvent) {
+    // A locked editor is not run (programmatic edits are not commits)
+    if (this.locked && ev.detail.commit) {
+      ev.preventDefault();
+      ev.stopImmediatePropagation();
+      return;
+    }
+
     // When using run button, prevent firing of reactive ojs updates until `manual: true`.
     if (this.options.runbutton && !ev.detail.commit) {
       ev.preventDefault();
@@ -452,8 +487,9 @@ abstract class ExerciseEditor {
       leftButtons.push(this.renderButton({
         text: labels['start-over'],
         icon: "arrow-repeat",
-        className: "btn-outline-dark",
+        className: "btn-outline-dark exercise-editor-btn-start-over",
         onclick: () => {
+          if (this.locked) return;
           // Reset code block contents to initial value
           this.view.dispatch({
             changes: {
@@ -491,7 +527,7 @@ abstract class ExerciseEditor {
         text: labels['run-above'],
         icon: "fast-forward",
         className: "btn-outline-dark disabled d-none exercise-editor-btn-run-above",
-        onclick: () => this.runAbove(),
+        onclick: () => { if (!this.locked) this.runAbove(); },
       }));
     }
     if (this.options.runbutton) {

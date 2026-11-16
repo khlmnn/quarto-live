@@ -8,7 +8,7 @@ which requires **Pyodide 314.0.2**.
 Install a release (recommended, so sites only change when you choose):
 
 ```bash
-quarto add khlmnn/quarto-live@v0.2.0-dev.khlmnn.2
+quarto add khlmnn/quarto-live@v0.2.0-dev.khlmnn.3
 ```
 
 This installs into `_extensions/khlmnn/live/`. Pages use `format: live-html` as with
@@ -63,7 +63,13 @@ The fork's changes are the commits in `git log upstream/main..main`. Currently:
    `#| runabove: false` turns it off for a cell. Each run is the usual `input` event with
    `detail: {commit: true, runAbove: true}`, which ipok uses to not save these runs.
    R cells don't report errors yet, so for them it never stops early.
-6. **Release builds**: rebuilt `_extensions/live/resources/` and the fork's version in
+6. **Locking an editor** (`editor.ts`). A `CustomEvent("live-lock", {detail: {locked:
+   true}})` on an editor's container makes the editor read-only (CodeMirror's `readOnly`
+   and `editable` facets, in a compartment) and disables Run Code, Run All Above and Start
+   Over (the latter now has the class `exercise-editor-btn-start-over`); Mod-Enter and
+   other commits are ignored while locked. `locked: false` undoes it. Code can still be
+   set programmatically. ipok locks the code cell of a solved question.
+7. **Release builds**: rebuilt `_extensions/live/resources/` and the fork's version in
    `_extensions/live/_extension.yml` (`0.2.0-dev.khlmnn.N`).
 
 The base is upstream `main` at `12fb30a` (2026-06-08, two commits after `v0.2.0`).
@@ -86,6 +92,7 @@ Sanity checks on the build output:
 grep -c "pyodide.asm.js" _extensions/live/resources/pyodide-worker.js   # 0 (change 1)
 grep -c "onkeydown=e.onclick" _extensions/live/resources/live-runtime.js   # 0 (change 2)
 grep -c "exercise-editor-btn-run-above" _extensions/live/resources/live-runtime.js   # >0 (change 5)
+grep -c "live-lock" _extensions/live/resources/live-runtime.js   # >0 (change 6)
 ```
 
 ## Releasing
@@ -131,10 +138,16 @@ D1–D9 in its README ("What ipok relies on in quarto-live").
    - Reload → edited code back in the editor (D7); saved output shown before Pyodide has
      loaded, looking like a live run, and still there after it has loaded (D5, D6).
    - Run after reload → restored output replaced by real output, no duplicate.
-   - Start Over → output cleared, nothing saved (D2).
+   - Start Over → output cleared, saved as `code: null` without output (D2).
    - Focus Run Code (click it), then hold Cmd, press Shift, Cmd-C, a letter: nothing runs;
      Enter on the focused button still runs (change 2).
    - Run All Above on the last cell (after reload, signed in): the cells above run in
      order, their restored output is replaced, and nothing new is saved (change 5).
    - No `[ipok]` warnings in the console.
 6. **Plain exercises** in ete335-test's `progress-test.qmd`: save, reload, data shown.
+7. **Question code cells** in ete335's section 1.2 (`kapitel/1-korpusen/1-2-strangar`):
+   - The cell sees nothing from the cells above, and a name defined in one run is gone in
+     the next (D10); it has no Run All Above button.
+   - Signed in: Run saves code and output in the question's record; reload restores them.
+   - A right answer locks the cell: read-only, Run Code and Start Over disabled, Cmd-Enter
+     does nothing; still locked after reload (D11, change 6).
