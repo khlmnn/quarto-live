@@ -8,7 +8,7 @@ which requires **Pyodide 314.0.2**.
 Install a release (recommended, so sites only change when you choose):
 
 ```bash
-quarto add khlmnn/quarto-live@v0.2.0-dev.khlmnn.1
+quarto add khlmnn/quarto-live@v0.2.0-dev.khlmnn.2
 ```
 
 This installs into `_extensions/khlmnn/live/`. Pages use `format: live-html` as with
