@@ -102,6 +102,8 @@ export class PyodideEvaluator implements ExerciseEvaluator {
     }
     ind.running();
 
+    // Whether the user code raised an exception, for "Run All Above"
+    let failed = true;
     try {
       // Set OJS inputs in "prep" environment
       await Promise.all(
@@ -115,6 +117,7 @@ export class PyodideEvaluator implements ExerciseEvaluator {
       await this.evaluate(setup, "prep");
       await this.envManager.create("result", "prep");
       const result = await this.evaluate(this.context.code, "result");
+      failed = !!result?.error;
 
       // Once we have the evaluate result, render it's contents to HTML
       if (!result) {
@@ -158,7 +161,7 @@ export class PyodideEvaluator implements ExerciseEvaluator {
       });
 
     } finally {
-      ind.finished();
+      ind.finished(failed);
       if (!this.context.indicator) ind.destroy();
     }
   }
@@ -197,12 +200,14 @@ export class PyodideEvaluator implements ExerciseEvaluator {
     const stdout = await resultObject.get("stdout");
     const stderr = await resultObject.get("stderr");
     const outputs = await resultObject.get("outputs");
+    const error = await resultObject.get("error");
 
     return {
       value: value as unknown,
       stdout: stdout as string,
       stderr: stderr as string,
       outputs: outputs as PyProxy,
+      error: error as boolean,
     };
   }
 

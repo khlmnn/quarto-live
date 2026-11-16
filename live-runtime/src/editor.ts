@@ -27,6 +27,7 @@ type ExerciseOptions = EvaluateOptions & {
   id: string,
   persist: boolean;
   runbutton: boolean;
+  runabove: boolean;
   startover: boolean;
   'min-lines': number | undefined;
   'max-lines': number | undefined;
@@ -53,6 +54,7 @@ type ExerciseButton = HTMLButtonElement | HTMLAnchorElement;
 const icons = {
   'arrow-repeat': require('./assets/arrow-repeat.svg') as string,
   'exclamation-circle': require('./assets/exclamation-circle.svg') as string,
+  'fast-forward': require('./assets/fast-forward.svg') as string,
   lightbulb: require('./assets/lightbulb.svg') as string,
   play: require('./assets/play.svg') as string,
 }
@@ -86,6 +88,9 @@ function hideEmptyPanels() {
   });
 }
 
+// All editors on the page, for "Run All Above"
+const editorRegistry: ExerciseEditor[] = [];
+
 abstract class ExerciseEditor {
   abstract defaultCaption: string;
   storageKey: string;
@@ -96,6 +101,8 @@ abstract class ExerciseEditor {
   options: ExerciseOptions;
   indicator: Indicator;
   completionMethods: Promise<ExerciseCompletionMethods>;
+  runWaiters: ((ok: boolean) => void)[] = [];
+  runningAbove: boolean = false;
 
   abstract languageExtensions(): Extension[];
 
@@ -113,11 +120,13 @@ abstract class ExerciseEditor {
       canvas: true,
       completion: true,
       runbutton: true,
+      runabove: true,
       startover: true,
       persist: false,
     }, options);
 
     this.storageKey = `editor-${window.location.href}#${this.options.id}`;
+    editorRegistry.push(this);
 
     const extensions = [
       basicSetup,
@@ -168,16 +177,23 @@ abstract class ExerciseEditor {
         Array.from(
           this.container.getElementsByClassName('exercise-editor-eval-indicator')
         ).forEach((el) => el.classList.add('d-none'));
+        const ok = !this.indicator.failed;
+        this.runWaiters.splice(0).forEach((resolve) => resolve(ok));
       },
       busyCallback: () => {
-        Array.from(
-          this.container.getElementsByClassName('exercise-editor-btn-run-code')
-        ).forEach((el) => el.classList.add('disabled'));
+        Array.from(this.container.querySelectorAll(
+          '.exercise-editor-btn-run-code, .exercise-editor-btn-run-above'
+        )).forEach((el) => el.classList.add('disabled'));
       },
       idleCallback: () => {
+        Array.from(this.container.querySelectorAll(
+          '.exercise-editor-btn-run-code, .exercise-editor-btn-run-above'
+        )).forEach((el) => el.classList.remove('disabled'));
+        // Only offer "Run All Above" when there is a cell above to run
+        const hasAbove = this.cellsAbove().length > 0;
         Array.from(
-          this.container.getElementsByClassName('exercise-editor-btn-run-code')
-        ).forEach((el) => el.classList.remove('disabled'));
+          this.container.getElementsByClassName('exercise-editor-btn-run-above')
+        ).forEach((el) => el.classList.toggle('d-none', !hasAbove));
       }
     });
   }
@@ -199,6 +215,56 @@ abstract class ExerciseEditor {
     // Store latest updates to editor content to local browser storage
     if (this.options.persist) {
       window.localStorage.setItem(this.storageKey, this.container.value.code);
+    }
+  }
+
+  // Editors above this one, in page order, that run in the same environment
+  cellsAbove(): ExerciseEditor[] {
+    const envir = this.options.envir ?? "global";
+    return editorRegistry
+      .filter((editor) => {
+        if (editor === this || !editor.container.isConnected) return false;
+        if ((editor.options.envir ?? "global") !== envir) return false;
+        if (editor.options.eval === false) return false;
+        // Exercises with blanks are not evaluated, so they would never finish
+        if (editor.options.exercise && /_{6}_*/.test(editor.view.state.doc.toString())) {
+          return false;
+        }
+        return !!(editor.container.compareDocumentPosition(this.container) &
+          Node.DOCUMENT_POSITION_FOLLOWING);
+      })
+      .sort((a, b) =>
+        a.container.compareDocumentPosition(b.container) & Node.DOCUMENT_POSITION_FOLLOWING
+          ? -1 : 1
+      );
+  }
+
+  // Run the code in the editor; resolves when it has run, with false if it
+  // raised an error. `runAbove` in the event marks runs started by "Run All
+  // Above" (ipok, for example, does not save them).
+  runAndWait(): Promise<boolean> {
+    return new Promise((resolve) => {
+      this.runWaiters.push(resolve);
+      this.container.dispatchEvent(new CustomEvent('input', {
+        detail: { commit: true, runAbove: true }
+      }));
+    });
+  }
+
+  // Run the cells above one after another, stopping at the first error
+  async runAbove() {
+    if (this.runningAbove) return;
+    this.runningAbove = true;
+    try {
+      for (const editor of this.cellsAbove()) {
+        const ok = await editor.runAndWait();
+        if (!ok) {
+          editor.container.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          break;
+        }
+      }
+    } finally {
+      this.runningAbove = false;
     }
   }
 
@@ -420,6 +486,14 @@ abstract class ExerciseEditor {
     right.className = "d-flex align-items-center gap-3";
 
     const rightButtons: ExerciseButton[] = [];
+    if (this.options.runbutton && this.options.runabove) {
+      rightButtons.push(this.renderButton({
+        text: labels['run-above'],
+        icon: "fast-forward",
+        className: "btn-outline-dark disabled d-none exercise-editor-btn-run-above",
+        onclick: () => this.runAbove(),
+      }));
+    }
     if (this.options.runbutton) {
       rightButtons.push(this.renderButton({
         text: labels['run-code'],

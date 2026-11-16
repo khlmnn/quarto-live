@@ -18,9 +18,11 @@ InteractiveShell().instance()
 
 with capture.capture_output() as output:
   value = None
+  error = False
   try:
     value = await pyodide.code.eval_code_async(code, globals = environment) # type: ignore[attr-defined]
   except Exception as err:
+    error = True
     print(err, file=sys.stderr)
   if (value is not None):
     display(value)
@@ -30,4 +32,5 @@ with capture.capture_output() as output:
   "stdout": output.stdout,
   "stderr": output.stderr,
   "outputs": output.outputs,
+  "error": error,
 }

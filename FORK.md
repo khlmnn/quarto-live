@@ -54,7 +54,16 @@ The fork's changes are the commits in `git log upstream/main..main`. Currently:
    `caption-python`, `caption-r`, `caption-exercise`. `live.lua` passes the language and
    the overrides in `<script type="live-labels">`. A cell's own `caption` option still
    wins. Candidate for an upstream pull request.
-5. **Release builds**: rebuilt `_extensions/live/resources/` and the fork's version in
+5. **Run All Above** (`editor.ts`, `indicator.ts`, `evaluate-pyodide.ts`,
+   `scripts/Python/capture.py`, icon `assets/fast-forward.svg`). A button left of Run Code
+   runs, one after another, every editor above the cell that uses the same environment
+   (so not exercises with their own), with the code currently in it. It stops at the first
+   cell that raises an exception: `capture.py` now reports `error`, and the evaluator
+   passes it to `Indicator.finished(failed)`. The button is hidden on the first cell;
+   `#| runabove: false` turns it off for a cell. Each run is the usual `input` event with
+   `detail: {commit: true, runAbove: true}`, which ipok uses to not save these runs.
+   R cells don't report errors yet, so for them it never stops early.
+6. **Release builds**: rebuilt `_extensions/live/resources/` and the fork's version in
    `_extensions/live/_extension.yml` (`0.2.0-dev.khlmnn.N`).
 
 The base is upstream `main` at `12fb30a` (2026-06-08, two commits after `v0.2.0`).
@@ -76,6 +85,7 @@ Sanity checks on the build output:
 ```bash
 grep -c "pyodide.asm.js" _extensions/live/resources/pyodide-worker.js   # 0 (change 1)
 grep -c "onkeydown=e.onclick" _extensions/live/resources/live-runtime.js   # 0 (change 2)
+grep -c "exercise-editor-btn-run-above" _extensions/live/resources/live-runtime.js   # >0 (change 5)
 ```
 
 ## Releasing
@@ -124,5 +134,7 @@ D1–D9 in its README ("What ipok relies on in quarto-live").
    - Start Over → output cleared, nothing saved (D2).
    - Focus Run Code (click it), then hold Cmd, press Shift, Cmd-C, a letter: nothing runs;
      Enter on the focused button still runs (change 2).
+   - Run All Above on the last cell (after reload, signed in): the cells above run in
+     order, their restored output is replaced, and nothing new is saved (change 5).
    - No `[ipok]` warnings in the console.
 6. **Plain exercises** in ete335-test's `progress-test.qmd`: save, reload, data shown.

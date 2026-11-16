@@ -13,7 +13,7 @@ export type IndicatorCallbacks = {
 
 interface IndicatorInterface {
   running: () => void;
-  finished: () => void;
+  finished: (failed?: boolean) => void;
   destroy: () => void;
   status: () => IndicatorStatus;
 }
@@ -23,6 +23,8 @@ const indicatorRegistry: Indicator[] = [];
 export class Indicator implements IndicatorInterface {
   isRunning: boolean = false;
   isDestroyed: boolean = false;
+  // Whether the last evaluation failed (set by evaluators that can tell)
+  failed: boolean = false;
   callbacks?: IndicatorCallbacks;
 
   constructor(callbacks?: IndicatorCallbacks) {
@@ -45,8 +47,9 @@ export class Indicator implements IndicatorInterface {
     this.callbacks.runningCallback();
   }
 
-  finished() {
+  finished(failed: boolean = false) {
     this.isRunning = false;
+    this.failed = failed;
     this.callbacks.finishedCallback();
     // If we're now idle, send idle signal
     if (!this.status().busy) {
