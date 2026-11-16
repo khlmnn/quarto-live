@@ -38,7 +38,23 @@ The fork's changes are the commits in `git log upstream/main..main`. Currently:
    focus, so pressing Cmd (e.g. for a shortcut) re-runs the cell, and on Start Over it
    resets the editor. Upstream bug; candidate for an upstream pull request.
 3. **Fork documentation** (this file, a notice in `README.md`).
-4. **Release builds**: rebuilt `_extensions/live/resources/` and the fork's version in
+4. **Localisable texts** (`live-runtime/src/labels.ts`, `editor.ts`, `live.lua`,
+   `templates/*-exercise.ojs`). Button texts and default captions come from a built-in
+   set for the document language (`lang`; English and Swedish), and single texts can be
+   overridden in the metadata:
+
+   ```yaml
+   live:
+     labels:
+       caption-python: Python
+       run-above: Kör cellerna ovan
+   ```
+
+   Keys: `run-code`, `run-above`, `start-over`, `show-hint`, `next-hint`, `show-solution`,
+   `caption-python`, `caption-r`, `caption-exercise`. `live.lua` passes the language and
+   the overrides in `<script type="live-labels">`. A cell's own `caption` option still
+   wins. Candidate for an upstream pull request.
+5. **Release builds**: rebuilt `_extensions/live/resources/` and the fork's version in
    `_extensions/live/_extension.yml` (`0.2.0-dev.khlmnn.N`).
 
 The base is upstream `main` at `12fb30a` (2026-06-08, two commits after `v0.2.0`).

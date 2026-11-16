@@ -34,3 +34,10 @@ options:
         type: boolean
         default: true
         description: Enable grading checks for exercises.
+      labels:
+        type: object
+        description: >-
+          Texts for editor buttons and default captions, overriding the built-in
+          ones for the document language (`lang`; built in: en, sv). Keys: run-code,
+          run-above, start-over, show-hint, next-hint, show-solution, caption-python,
+          caption-r, caption-exercise.

@@ -633,6 +633,21 @@ function Pandoc(doc)
     pyodide = setupPyodide(doc)
   end
 
+  -- Language and overridden texts for editor buttons and captions
+  local labels = {}
+  if (type(live_options.labels) == "table") then
+    for k, v in pairs(live_options.labels) do
+      labels[k] = pandoc.utils.stringify(v)
+    end
+  elseif (live_options.labels ~= nil) then
+    quarto.log.error("Invalid value for document yaml key: `live.labels`.")
+  end
+  local lang = doc.meta.lang and pandoc.utils.stringify(doc.meta.lang) or nil
+  doc.blocks:insert(pandoc.RawBlock(
+    "html",
+    "<script type=\"live-labels\">\n" .. json_as_b64({ lang = lang, labels = labels }) .. "\n</script>"
+  ))
+
   -- OJS block definitions
   doc.blocks:insert(pandoc.RawBlock(
     "html",

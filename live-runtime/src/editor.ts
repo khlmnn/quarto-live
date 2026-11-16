@@ -2,6 +2,7 @@ import type { WebR, RFunction } from 'webr';
 import type { PyodideAPI } from 'pyodide';
 import type { EvaluateOptions } from './evaluate';
 import { Indicator } from './indicator';
+import { getLabels } from './labels';
 import { basicSetup } from 'codemirror';
 import { tagHighlighterTok } from './highlighter';
 import { EditorView, ViewUpdate, keymap } from '@codemirror/view';
@@ -248,11 +249,12 @@ abstract class ExerciseEditor {
   }
 
   renderHintButton(hints: NodeListOf<Element>, initial: ExerciseButton | undefined) {
+    const labels = getLabels();
     // Reduce over the hints, replacing each in a chain of click handlers
     return Array.from(hints).reduceRight<ExerciseButton | null>(
       (current, hint, idx, arr) => {
         return this.renderButton({
-          text: idx === 0 ? "Show Hint" : "Next Hint",
+          text: idx === 0 ? labels['show-hint'] : labels['next-hint'],
           icon: "lightbulb",
           className: "btn-outline-dark btn-sm",
           onclick: function () {
@@ -272,7 +274,7 @@ abstract class ExerciseEditor {
   renderSolutionButton(solutions: NodeListOf<Element>, hide: NodeListOf<Element>) {
     // Reveal all solution elements at once, optionally hiding other elements
     return this.renderButton({
-      text: "Show Solution",
+      text: getLabels()['show-solution'],
       icon: "exclamation-circle",
       className: "btn-exercise-solution btn-outline-dark btn-sm",
       onclick: function () {
@@ -361,6 +363,7 @@ abstract class ExerciseEditor {
   }
 
   render() {
+    const labels = getLabels();
     const card = document.createElement("div");
     const header = document.createElement("div");
     const body = document.createElement("div");
@@ -371,13 +374,17 @@ abstract class ExerciseEditor {
     const left = document.createElement("div");
     left.className = "d-flex align-items-center gap-3";
     const label = document.createElement("div");
-    label.innerHTML = "caption" in this.options ? this.options.caption : this.defaultCaption;
+    if ("caption" in this.options) {
+      label.innerHTML = this.options.caption;
+    } else {
+      label.textContent = this.options.exercise ? labels['caption-exercise'] : this.defaultCaption;
+    }
     left.appendChild(label);
 
     const leftButtons: ExerciseButton[] = [];
     if (this.options.startover) {
       leftButtons.push(this.renderButton({
-        text: "Start Over",
+        text: labels['start-over'],
         icon: "arrow-repeat",
         className: "btn-outline-dark",
         onclick: () => {
@@ -415,7 +422,7 @@ abstract class ExerciseEditor {
     const rightButtons: ExerciseButton[] = [];
     if (this.options.runbutton) {
       rightButtons.push(this.renderButton({
-        text: "Run Code",
+        text: labels['run-code'],
         icon: "play",
         className: "btn-primary disabled exercise-editor-btn-run-code",
         onclick: () => {
@@ -489,7 +496,7 @@ export class WebRExerciseEditor extends ExerciseEditor {
   }
 
   render() {
-    this.defaultCaption = 'R Code';
+    this.defaultCaption = getLabels()['caption-r'];
     return super.render();
   }
 
@@ -541,7 +548,7 @@ export class PyodideExerciseEditor extends ExerciseEditor {
   }
 
   render() {
-    this.defaultCaption = 'Python Code';
+    this.defaultCaption = getLabels()['caption-python'];
     return super.render();
   }
 
