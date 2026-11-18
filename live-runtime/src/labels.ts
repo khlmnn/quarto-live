@@ -12,6 +12,8 @@ export type Labels = {
   'show-hint': string;
   'next-hint': string;
   'show-solution': string;
+  'copy-code': string;
+  'copied': string;
   'caption-python': string;
   'caption-r': string;
   'caption-exercise': string;
@@ -25,6 +27,8 @@ const builtin: { [lang: string]: Labels } = {
     'show-hint': 'Show Hint',
     'next-hint': 'Next Hint',
     'show-solution': 'Show Solution',
+    'copy-code': 'Copy to Clipboard',
+    'copied': 'Copied!',
     'caption-python': 'Python Code',
     'caption-r': 'R Code',
     'caption-exercise': 'Exercise',
@@ -36,6 +40,8 @@ const builtin: { [lang: string]: Labels } = {
     'show-hint': 'Visa ledtråd',
     'next-hint': 'Nästa ledtråd',
     'show-solution': 'Visa lösning',
+    'copy-code': 'Kopiera till urklipp',
+    'copied': 'Kopierat!',
     'caption-python': 'Python-kod',
     'caption-r': 'R-kod',
     'caption-exercise': 'Övning',

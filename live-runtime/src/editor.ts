@@ -24,6 +24,7 @@ type ExerciseOptions = EvaluateOptions & {
   canvas: boolean;
   caption: string;
   completion: boolean;
+  copybutton: boolean;
   id: string,
   persist: boolean;
   runbutton: boolean;
@@ -122,6 +123,7 @@ abstract class ExerciseEditor {
       autorun: false,
       canvas: true,
       completion: true,
+      copybutton: true,
       runbutton: true,
       runabove: true,
       startover: true,
@@ -333,6 +335,64 @@ abstract class ExerciseEditor {
       spec.onclick.call(dom, ev);
     };
     return dom;
+  }
+
+  // Copy the code in the editor to the clipboard, like Quarto's copy button
+  renderCopyButton() {
+    const labels = getLabels();
+    const button = document.createElement("button");
+    button.className = "code-copy-button exercise-editor-btn-copy";
+    button.title = labels['copy-code'];
+    button.setAttribute("aria-label", labels['copy-code']);
+    button.innerHTML = '<i class="bi"></i>';
+    button.onclick = async (ev: MouseEvent) => {
+      // Quarto's ClipboardJS handler for .code-copy-button listens on the
+      // body and expects a static code block, so keep the click from it
+      ev.stopPropagation();
+      const code = this.view.state.doc.toString();
+      try {
+        await navigator.clipboard.writeText(code);
+      } catch (err) {
+        // navigator.clipboard needs a secure context; Quarto ships ClipboardJS
+        const clipboardJS = (window as any).ClipboardJS;
+        if (!clipboardJS) {
+          console.warn('Could not copy code:', err);
+          return;
+        }
+        clipboardJS.copy(code);
+      }
+      this.flashCopied(button);
+    };
+    return button;
+  }
+
+  // Feedback as in Quarto's onCopySuccess: check icon and tooltip for 1 s
+  flashCopied(button: HTMLButtonElement) {
+    const labels = getLabels();
+    button.blur();
+    button.classList.add('code-copy-button-checked');
+    button.title = labels['copied'];
+    const bootstrap = (window as any).bootstrap;
+    let tooltip: any;
+    if (bootstrap?.Tooltip) {
+      button.setAttribute("data-bs-placement", "left");
+      button.setAttribute("data-bs-title", labels['copied']);
+      tooltip = new bootstrap.Tooltip(button, {
+        trigger: "manual",
+        customClass: "code-copy-button-tooltip",
+        offset: [0, -8],
+      });
+      tooltip.show();
+    }
+    setTimeout(() => {
+      if (tooltip) {
+        tooltip.dispose();
+        button.removeAttribute("data-bs-title");
+        button.removeAttribute("data-bs-placement");
+      }
+      button.title = labels['copy-code'];
+      button.classList.remove('code-copy-button-checked');
+    }, 1000);
   }
 
   renderButtonGroup(buttons: ExerciseButton[]) {
@@ -553,6 +613,12 @@ abstract class ExerciseEditor {
     card.appendChild(header);
 
     body.appendChild(this.view.dom);
+    if (this.options.copybutton) {
+      // Quarto's own classes, so that the button looks and behaves like the
+      // copy button of static code blocks (shown on hover)
+      body.classList.add("code-copy-outer-scaffold");
+      body.appendChild(this.renderCopyButton());
+    }
     card.appendChild(body);
     return card;
   }

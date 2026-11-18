@@ -51,9 +51,9 @@ The fork's changes are the commits in `git log upstream/main..main`. Currently:
    ```
 
    Keys: `run-code`, `run-above`, `start-over`, `show-hint`, `next-hint`, `show-solution`,
-   `caption-python`, `caption-r`, `caption-exercise`. `live.lua` passes the language and
-   the overrides in `<script type="live-labels">`. A cell's own `caption` option still
-   wins. Candidate for an upstream pull request.
+   `caption-python`, `caption-r`, `caption-exercise`, `copy-code`, `copied`. `live.lua`
+   passes the language and the overrides in `<script type="live-labels">`. A cell's own
+   `caption` option still wins. Candidate for an upstream pull request.
 5. **Run All Above** (`editor.ts`, `indicator.ts`, `evaluate-pyodide.ts`,
    `scripts/Python/capture.py`, icon `assets/fast-forward.svg`). A button left of Run Code
    runs, one after another, every editor above the cell that uses the same environment
@@ -69,7 +69,14 @@ The fork's changes are the commits in `git log upstream/main..main`. Currently:
    Over (the latter now has the class `exercise-editor-btn-start-over`); Mod-Enter and
    other commits are ignored while locked. `locked: false` undoes it. Code can still be
    set programmatically. ipok locks the code cell of a solved question.
-7. **Release builds**: rebuilt `_extensions/live/resources/` and the fork's version in
+7. **Copy button** (`editor.ts`, `labels.ts`). Editors get the copy button of Quarto's
+   static code blocks: Quarto's classes (`code-copy-outer-scaffold` on the editor body,
+   `code-copy-button`), so it shows on hover and looks the same, and Quarto's feedback
+   (check icon, tooltip). It copies the editor's current code with
+   `navigator.clipboard`, falling back to Quarto's `ClipboardJS`; the click is kept from
+   Quarto's own ClipboardJS handler, which expects a static block. `#| copybutton: false`
+   turns it off for a cell. New label keys `copy-code`, `copied`.
+8. **Release builds**: rebuilt `_extensions/live/resources/` and the fork's version in
    `_extensions/live/_extension.yml` (`0.2.0-dev.khlmnn.N`).
 
 The base is upstream `main` at `12fb30a` (2026-06-08, two commits after `v0.2.0`).
@@ -93,6 +100,7 @@ grep -c "pyodide.asm.js" _extensions/live/resources/pyodide-worker.js   # 0 (cha
 grep -c "onkeydown=e.onclick" _extensions/live/resources/live-runtime.js   # 0 (change 2)
 grep -c "exercise-editor-btn-run-above" _extensions/live/resources/live-runtime.js   # >0 (change 5)
 grep -c "live-lock" _extensions/live/resources/live-runtime.js   # >0 (change 6)
+grep -c "exercise-editor-btn-copy" _extensions/live/resources/live-runtime.js   # >0 (change 7)
 ```
 
 ## Releasing
