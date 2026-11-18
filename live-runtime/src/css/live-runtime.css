@@ -99,6 +99,24 @@
   --bs-btn-font-size: 0.75rem;
 }
 
+/* Copy button: Quarto's OJS runtime adds `btn btn-quarto` to every button in
+   OJS output, which would make it a dark Bootstrap button. Undo that, so that
+   it looks like the copy button of a static code block. */
+.card.exercise-editor .code-copy-button.btn {
+  --bs-btn-padding-x: 6px;
+  --bs-btn-padding-y: 1px;
+  --bs-btn-font-size: inherit;
+  --bs-btn-line-height: inherit;
+  --bs-btn-border-width: 0;
+  --bs-btn-border-radius: 0;
+  --bs-btn-bg: transparent;
+  --bs-btn-hover-bg: transparent;
+  --bs-btn-active-bg: transparent;
+  --bs-btn-box-shadow: none;
+  --bs-btn-focus-box-shadow: none;
+  transition: none;
+}
+
 .quarto-dark .card.exercise-editor .card-header .btn.btn-outline-dark {
   --bs-btn-color: #f8f8f8;
   --bs-btn-border-color: #f8f8f8;

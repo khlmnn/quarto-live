@@ -69,10 +69,12 @@ The fork's changes are the commits in `git log upstream/main..main`. Currently:
    Over (the latter now has the class `exercise-editor-btn-start-over`); Mod-Enter and
    other commits are ignored while locked. `locked: false` undoes it. Code can still be
    set programmatically. ipok locks the code cell of a solved question.
-7. **Copy button** (`editor.ts`, `labels.ts`). Editors get the copy button of Quarto's
-   static code blocks: Quarto's classes (`code-copy-outer-scaffold` on the editor body,
-   `code-copy-button`), so it shows on hover and looks the same, and Quarto's feedback
-   (check icon, tooltip). It copies the editor's current code with
+7. **Copy button** (`editor.ts`, `labels.ts`, `css/live-runtime.css`). Editors get the
+   copy button of Quarto's static code blocks: Quarto's classes (`code-copy-outer-scaffold`
+   on the editor body, `code-copy-button`), so it shows on hover and looks the same, and
+   Quarto's feedback (check icon, tooltip). Quarto's OJS runtime adds `btn btn-quarto` to
+   every button in OJS output, so the CSS resets Bootstrap's button variables on it, or it
+   would be a large dark button. It copies the editor's current code with
    `navigator.clipboard`, falling back to Quarto's `ClipboardJS`; the click is kept from
    Quarto's own ClipboardJS handler, which expects a static block. `#| copybutton: false`
    turns it off for a cell. New label keys `copy-code`, `copied`.
