@@ -40,9 +40,14 @@ local function tree(root)
   function gather(path, list)
     if (isdir(path)) then
       -- For each item in this dir, recurse for subdir content
+      -- Skip hidden files and Python bytecode caches (e.g. .DS_Store, __pycache__/):
+      -- they are local leftovers that the site does not publish, so listing them
+      -- would make the page fetch files that are not there (404)
       local items = pandoc.system.list_directory(path)
       for _, item in pairs(items) do
-        gather(path .. "/" .. item, list)
+        if item:sub(1, 1) ~= "." and item ~= "__pycache__" then
+          gather(path .. "/" .. item, list)
+        end
       end
     else
       -- This is a file, add it to the table directly

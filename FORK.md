@@ -78,7 +78,14 @@ The fork's changes are the commits in `git log upstream/main..main`. Currently:
    `navigator.clipboard`, falling back to Quarto's `ClipboardJS`; the click is kept from
    Quarto's own ClipboardJS handler, which expects a static block. `#| copybutton: false`
    turns it off for a cell. New label keys `copy-code`, `copied`.
-8. **Release builds**: rebuilt `_extensions/live/resources/` and the fork's version in
+8. **Resource directories skip local leftovers** (`live.lua`, `tree()`). A directory
+   listed under `resources:` no longer contributes hidden files (`.DS_Store`, …) or
+   `__pycache__/` directories. Upstream lists every file in it, so after a Python
+   package in the project has been imported locally, its `__pycache__/*.pyc` ends up in
+   the page's resource list; Quarto doesn't publish it, and the page gets a 404 for it.
+   An explicitly listed file is still included whatever its name. Candidate for an
+   upstream pull request.
+9. **Release builds**: rebuilt `_extensions/live/resources/` and the fork's version in
    `_extensions/live/_extension.yml` (`0.2.0-dev.khlmnn.N`).
 
 The base is upstream `main` at `12fb30a` (2026-06-08, two commits after `v0.2.0`).
